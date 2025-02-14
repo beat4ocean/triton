@@ -159,59 +159,69 @@ void assertDimsSubsetIgnoringOrder(T &&small, U &&big) {
 
 // Compute the supremum of two lists.
 // Error out if the supremum does not exist (e.g. [a, b] and [b, a]).
-// or if it is not unique (e.g. [a, b] and [a, c]).
+// If the supremum is not unique, we return the first list first
+// (e.g. [a, b], [a, c] -> [a, b, c]).
 SmallVector<StringAttr> orderedListSupremum(const SmallVector<StringAttr> &x,
                                             const SmallVector<StringAttr> &y) {
-  llvm::DenseMap<StringAttr, size_t> posX, posY;
-  for (auto [i, a] : llvm::enumerate(x))
-    posX[a] = i;
-  for (auto [j, b] : llvm::enumerate(y))
-    posY[b] = j;
+  DenseMap<StringAttr, size_t> posX, posY;
+  for (size_t i = 0, n = x.size(); i < n; ++i)
+    posX[x[i]] = i;
+  for (size_t j = 0, m = y.size(); j < m; ++j)
+    posY[y[j]] = j;
   size_t i = 0, j = 0;
-  SmallVector<StringAttr> C;
+  SmallVector<StringAttr> z;
+  DenseSet<StringAttr> used;
   while (i < x.size() || j < y.size()) {
+    while (i < x.size() && used.count(x[i]))
+      ++i;
+    while (j < y.size() && used.count(y[j]))
+      ++j;
     if (i < x.size() && j < y.size()) {
-      if (x[i] == y[j]) {
-        C.push_back(x[i]);
-        ++i;
-        ++j;
+      StringAttr a = x[i], b = y[j];
+      if (a == b) {
+        z.push_back(a);
+        used.insert(a);
+        ++i, ++j;
         continue;
       }
-      auto &a = x[i], &b = y[j];
       bool aForced = posY.count(a) && posY[a] >= j;
       bool bForced = posX.count(b) && posX[b] >= i;
       if (aForced != bForced) {
         if (aForced) {
-          C.push_back(a);
+          z.push_back(a);
+          used.insert(a);
           ++i;
         } else {
-          C.push_back(b);
+          z.push_back(b);
+          used.insert(b);
           ++j;
         }
       } else if (aForced) {
-        if (posY[a] < posX[b]) {
-          C.push_back(a);
+        if (posY[a] <= posX[b]) {
+          z.push_back(a);
+          used.insert(a);
           ++i;
-        } else if (posX[b] < posY[a]) {
-          C.push_back(b);
+        } else {
+          z.push_back(b);
+          used.insert(b);
           ++j;
-        } else
-          llvm::report_fatal_error(
-              "No unique supremum exists (ambiguous merge order).");
+        }
       } else {
-        llvm::report_fatal_error("Supremum is not unique.");
+        z.push_back(a);
+        used.insert(a);
+        ++i;
       }
+    } else if (i < x.size()) {
+      z.push_back(x[i]);
+      used.insert(x[i]);
+      ++i;
     } else {
-      if (i < x.size()) {
-        C.insert(C.end(), x.begin() + i, x.end());
-        break;
-      } else {
-        C.insert(C.end(), y.begin() + j, y.end());
-        break;
-      }
+      z.push_back(y[j]);
+      used.insert(y[j]);
+      ++j;
     }
   }
-  return C;
+  return z;
 }
 } // anonymous namespace
 

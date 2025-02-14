@@ -158,9 +158,8 @@ void assertDimsSubsetIgnoringOrder(T &&small, U &&big) {
 }
 
 // Compute the supremum of two lists.
-// Error out if the supremum does not exist (e.g. A = [a, b] and B = [b, a]).
-// or if it is not unique (e.g. A = [a, b] and B = [a, c]).
-// T and U are StringAttr iterables
+// Error out if the supremum does not exist (e.g. [a, b] and [b, a]).
+// or if it is not unique (e.g. [a, b] and [a, c]).
 SmallVector<StringAttr> orderedListSupremum(const SmallVector<StringAttr> &x,
                                             const SmallVector<StringAttr> &y) {
   llvm::DenseMap<StringAttr, size_t> posX, posY;
@@ -214,7 +213,6 @@ SmallVector<StringAttr> orderedListSupremum(const SmallVector<StringAttr> &x,
   }
   return C;
 }
-
 } // anonymous namespace
 
 /*static*/ std::optional<LinearLayout>

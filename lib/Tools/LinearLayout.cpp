@@ -164,23 +164,21 @@ void assertDimsSubsetIgnoringOrder(T &&small, U &&big) {
 SmallVector<StringAttr> orderedListSupremum(const SmallVector<StringAttr> &x,
                                             const SmallVector<StringAttr> &y) {
   DenseMap<StringAttr, size_t> posX, posY;
-  for (size_t i = 0, n = x.size(); i < n; ++i)
-    posX[x[i]] = i;
-  for (size_t j = 0, m = y.size(); j < m; ++j)
-    posY[y[j]] = j;
+  for (auto [i, x] : llvm::enumerate(x))
+    posX[x] = i;
+  for (auto [j, y] : llvm::enumerate(y))
+    posY[y] = j;
   size_t i = 0, j = 0;
-  SmallVector<StringAttr> z;
-  DenseSet<StringAttr> used;
+  llvm::SetVector<mlir::StringAttr> setVec;
   while (i < x.size() || j < y.size()) {
-    while (i < x.size() && used.count(x[i]))
+    while (i < x.size() && setVec.count(x[i]))
       ++i;
-    while (j < y.size() && used.count(y[j]))
+    while (j < y.size() && setVec.count(y[j]))
       ++j;
     if (i < x.size() && j < y.size()) {
-      StringAttr a = x[i], b = y[j];
+      auto a = x[i], b = y[j];
       if (a == b) {
-        z.push_back(a);
-        used.insert(a);
+        setVec.insert(a);
         ++i, ++j;
         continue;
       }
@@ -188,40 +186,33 @@ SmallVector<StringAttr> orderedListSupremum(const SmallVector<StringAttr> &x,
       bool bForced = posX.count(b) && posX[b] >= i;
       if (aForced != bForced) {
         if (aForced) {
-          z.push_back(a);
-          used.insert(a);
+          setVec.insert(a);
           ++i;
         } else {
-          z.push_back(b);
-          used.insert(b);
+          setVec.insert(b);
           ++j;
         }
       } else if (aForced) {
         if (posY[a] <= posX[b]) {
-          z.push_back(a);
-          used.insert(a);
+          setVec.insert(a);
           ++i;
         } else {
-          z.push_back(b);
-          used.insert(b);
+          setVec.insert(b);
           ++j;
         }
       } else {
-        z.push_back(a);
-        used.insert(a);
+        setVec.insert(a);
         ++i;
       }
     } else if (i < x.size()) {
-      z.push_back(x[i]);
-      used.insert(x[i]);
+      setVec.insert(x[i]);
       ++i;
-    } else {
-      z.push_back(y[j]);
-      used.insert(y[j]);
+    } else if (j < y.size()) {
+      setVec.insert(y[j]);
       ++j;
     }
   }
-  return z;
+  return to_vector(setVec);
 }
 } // anonymous namespace
 
